@@ -1,0 +1,133 @@
+\documentclass[oneside,titlepage,fleqn,a4paper]{article}
+\pagestyle{myheadings}
+\setlength{\evensidemargin}{0mm} \setlength{\oddsidemargin}{0mm}
+\setlength{\textheight}{250mm} \setlength{\textwidth}{150mm}
+\setlength{\topmargin}{0mm} \setlength{\headheight}{3mm}
+\setlength{\headsep}{0mm} \setlength{\topskip}{0mm}
+\setlength{\footskip}{5mm}
+
+\usepackage{amssymb}
+\usepackage{amsmath}
+%\usepackage{curves}
+\usepackage{epsfig}
+%\usepackage{graphicx}
+\usepackage{array,etoolbox}
+
+\usepackage[bookmarks]{hyperref}
+\hypersetup{colorlinks = true, linkcolor = red}
+
+% pass amssymb option to resolve \square redefined conflict
+\usepackage[amssymb]{SIunits}
+
+%\preto\tabular{\setcounter{magicrownumbers}{0}}
+\newcounter{magicrownumbers}
+\newcommand\numberedrow{\stepcounter{magicrownumbers}\arabic{magicrownumbers}}
+\newcommand\newrow{\hline \numberedrow}
+
+\begin{document}
+
+\begin{titlepage}
+\vspace{100mm}
+\begin{center}
+DOCTORLY TECHNICAL ASSESSMENT \\
+\end{center}
+\end{titlepage}
+
+\tableofcontents
+\newpage
+\section{Task \#3: Monitoring Production Servers}
+\subsection{Introduction}
+When faced with the task of monitoring production Ubuntu instances, three important considerations come to mind for me:
+\begin{enumerate}
+\item Choice of tools \& technologies to use.
+\item How to implement the chosen technologies as a running system
+\item Setting up proper channels to alert the relevant administrators of any possible issues.
+\end{enumerate}
+Below, I will briefly discuss each of these in more detail.
+
+\subsection{Monitoring Tools \& Technologies}
+I have created and configured metrics \& monitoring previously, using a \emph{Prometheus-Grafana} stack (and in one case an additional \emph{blackbox\_exporter} component for monitoring legacy web and database servers), and this has worked extremely well.
+
+\subsection{Implementation}
+My implementation of choice for the monitoring stack would be
+\begin{itemize}
+\item Deploying the monitoring stack in Kubernetes.
+\item Using Helm charts for deploying the different components.
+\end{itemize}
+
+Alternatively, I'd been considering the creation of a Docker cluster (docker compose) for the monitoring stack if Kubernetes or equivalent was not available to me.
+
+\subsection{Alerts}
+The third consideration would be to set up instant alerting with high visibility.
+
+In my experience email alerts, while useful for detail analysis \& troubleshooting, lacks immediacy: People tend to ignore emails or they are simply too occupied with other work to notice an email alert in reasonable time.
+
+I would therefore prefer to set up an instant alert channel using tools such as \emph{MS Teams, Opsgenie, etc.} together with email alerting.
+
+I think it is also very important that the metrics set up in Prometheus \& Grafana, should be relevant, accurate, and as easy as possible for a viewer to understand; hand-in-hand with this, I would take care that alert messages are accurate and easy to understand, rather than vague and/or misleading.
+
+\newpage
+\section{Task \#4: A Basic CI/CD Pipeline}
+\subsection{Introduction}
+In my current role as DevOps Engineer, I have created and updated a \emph{GitLab} CI/CD pipeline for deploying API's and a website, and I would follow the same approach here.
+
+\subsection{Approach \& Assumptions}
+\begin{enumerate}
+\item The application is an API written in \emph{Typescript/Javascript}; I will call it \textbf{api-fdt}.
+\item The \emph{Rush} build tool is used to build, run tests, and publish the application.
+\item The application is published a as Docker image that is pushed to the GitLab container registry, from which it may be pulled by a Helm deployment into Kubernetes.
+\item The \texttt{package.json} file for the application contains a set of scripts to manage building, testing, publishing, and pushing the resulting Docker image to the GitLab container registry.
+\item The CI/CD pipeline will have 3 stages:
+\begin{itemize}
+\item Build
+\item Test
+\item Publish
+\end{itemize}
+\item The pipeline is configured in the \emph{gitlab-ci} yaml file.
+\end{enumerate}
+
+
+\subsection{Reference Material}
+In the \texttt{task-4/} directory I have included some relevant files - extracts that still need to be expanded and tested, but could serve as scaffolding and a starting point for the pipeline implementation.
+\begin{description}
+\item[package.json:] Containing scripts that could be executed by \texttt{rush} or \texttt{rushx} to produce the end-product.
+\item[dotgitlab-ci.yml:] Renamed \texttt{.gitlab-ci.yml} for the sake of visibility; this is the GitLab CI/CD pipeline configuration file.
+\item[bash helper scripts:] Some example helper scripts (in the \texttt{task-4/helper-scripts/} directory), that are being called by some of the \texttt{package.json} scripts.
+\item[readme.md:] A basic document explaining to users how the CI/CD pipeline works.
+\end{description}
+
+\newpage
+\section{Task \#5: Helm Chart for a WordPress Application}
+\subsection{Introduction}
+In my current role I have actually done several WordPress deployments into AWS Kubernetes.
+
+For this task I would like to submit an example Helm chart based on one of these deployments.
+
+\subsection{Description}
+\begin{enumerate}
+\item The chart is based on \emph{WordPress packaged by Bitnami}.
+\item Unfortunately, due to me running out of time in this assessment, I haven't been able to do a real deployment and test it.
+\item I have, however, included my modified chart and values file in the directory \texttt{task-5/helm/}
+\item I also include the output from the commands below in the directory \texttt{task-5/output/}
+\end{enumerate}
+\begin{itemize}
+\item Rendered templates: \\
+\begin{scriptsize}
+\texttt{helm template -f values.yaml chart/wordpress |\& tee helm-template.txt}
+\end{scriptsize}
+\item Install dry-run: \\
+\begin{scriptsize}
+\texttt{helm install --dry-run -f values.yaml doctorly-demo chart/wordpress |\& tee helm-install-dry-run.txt}
+\end{scriptsize}
+\end{itemize}
+
+% \begin{figure}[p]
+%   {
+%     \centering
+%     \caption{Simulation Manager}
+%     \label{f01}
+%     \includegraphics[width=150mm, height=89.285mm]{images/eps/001.eps}
+%   }
+% \end{figure}
+
+\end{document}

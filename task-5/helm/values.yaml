@@ -1,0 +1,51 @@
+wordpressUsername: fdt
+wordpressPassword: "mypassword01"
+wordpressEmail: frikdt@gmail.com
+wordpressFirstName: Sys
+wordpressLastName: Admin
+wordpressBlogName: Doctorly Demo
+wordpressScheme: https
+# smtpHost: ""
+# smtpPort: ""
+# smtpUser: ""
+# smtpPassword: ""
+# smtpProtocol: ""
+
+htaccessPersistenceEnabled: true
+
+ingress:
+  enabled: true
+  ingressClassName: "nginx-public"
+  path: /
+  hostname: doctorlydemo.fdt.cloud
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    cert-manager.io/issuer: "letsencrypt-cert-qa2"
+    nginx.ingress.kubernetes.io/server-snippet: |-
+      add_header X-Robots-Tag "noindex, nofollow";
+  tls: true
+
+metrics:
+  enabled: true
+
+mariadb:
+  auth:
+    rootPassword: "mypassword02"
+    password: "mypassword03"
+
+updateStrategy:
+  type: Recreate
+  rollingUpdate: null
+
+volumePermissions:
+  enabled: true
+
+podSecurityContext:
+  enabled: true
+  fsGroup: 0
+
+containerSecurityContext:
+  enabled: true
+  runAsUser: 1
+  runAsNonRoot: true

@@ -1,0 +1,118 @@
+stages:
+    - build
+    - test
+    - publish
+
+image: registry.gitlab.com/gitlab-doctorly-demo/docker/build-node/build-node-16:b00d2a4f
+variables:
+    GIT_DEPTH: 1
+
+build-api:
+    cache:
+        # Cache per release branch
+        key: platform-build-$CI_COMMIT_REF_SLUG
+        paths:
+            - common/temp
+            - websites/web-consumer-portal/.next/cache/
+            - websites/web-customer-portal/.next/cache/
+    stage: build
+    rules:
+        - if: '($CI_COMMIT_BRANCH =~ /^rel-[0-9]+\.[0-9]+\.[0-9]+$/) && ($CI_PIPELINE_SOURCE == "push")'
+        - if: '($CI_COMMIT_BRANCH =~ /^master-(qa[0-9])$/) && ($CI_PIPELINE_SOURCE == "push")'
+    services:
+        - name: docker:dind
+        - name: postgis/postgis:12-3.0-alpine
+          alias: service-db
+    variables:
+        CI_DEBUG_TRACE: "true"
+        POSTGRES_DB: api_fdt # for postgres container
+        POSTGRES_USER: fdt # for postgres container
+        POSTGRES_PASSWORD: demopassword # for postgres container
+        PGPASSWORD: $POSTGRES_PASSWORD # for psql
+        POSTGRES_HOST: service-db
+    before_script:
+        # setup postgres db
+        - psql -h $POSTGRES_HOST -U $POSTGRES_USER postgres -f ./services/database/init.sql
+        - cp ./common/config/rush/.npmrc.build ./common/config/rush/.npmrc
+    script:
+        - rush install
+        - rush build:ci:build -v
+    # Upload artifacts when the build fails so we can inspect the logs
+    artifacts:
+        paths:
+            - '**/*.build.error.log'
+            - '**/*.build.log'
+        expire_in: 1 week
+        when: always
+
+test-api:
+    cache:
+        # Cache per release branch
+        key: platform-build-$CI_COMMIT_REF_SLUG
+        paths:
+            - common/temp
+            - websites/web-consumer-portal/.next/cache/
+            - websites/web-customer-portal/.next/cache/
+    stage: test
+    rules:
+        - if: '($CI_COMMIT_BRANCH =~ /^rel-[0-9]+\.[0-9]+\.[0-9]+$/) && ($CI_PIPELINE_SOURCE == "push")'
+        - if: '($CI_COMMIT_BRANCH =~ /^master-(qa[0-9])$/) && ($CI_PIPELINE_SOURCE == "push")'
+    services:
+        - name: docker:dind
+        - name: postgis/postgis:12-3.0-alpine
+          alias: service-db
+    variables:
+        CI_DEBUG_TRACE: "true"
+        POSTGRES_DB: api_fdt # for postgres container
+        POSTGRES_USER: fdt # for postgres container
+        POSTGRES_PASSWORD: demopassword # for postgres container
+        PGPASSWORD: $POSTGRES_PASSWORD # for psql
+        POSTGRES_HOST: service-db
+    before_script:
+        # setup postgres db
+        - psql -h $POSTGRES_HOST -U $POSTGRES_USER postgres -f ./services/database/init.sql
+        - cp ./common/config/rush/.npmrc.build ./common/config/rush/.npmrc
+    script:
+        - rush install
+        - rush build:ci:build-and-test -v
+    # Upload artifacts when the build fails so we can inspect the logs
+    artifacts:
+        paths:
+            - '**/*.build.error.log'
+            - '**/*.build.log'
+        expire_in: 1 week
+        when: always
+
+publish-api:
+    cache:
+        # Cache per release branch
+        key: platform-build-$CI_COMMIT_REF_SLUG
+    stage: publish
+    rules:
+        - if: '($CI_COMMIT_BRANCH =~ /^rel-[0-9]+\.[0-9]+\.[0-9]+$/) && ($CI_PIPELINE_SOURCE == "push")'
+    services:
+        - name: docker:dind
+        - name: postgis/postgis:12-3.0-alpine
+          alias: service-db
+    variables:
+        CI_DEBUG_TRACE: "true"
+        POSTGRES_DB: api_fdt # for postgres container
+        POSTGRES_USER: fdt # for postgres container
+        POSTGRES_PASSWORD: demopassword # for postgres container
+        PGPASSWORD: $POSTGRES_PASSWORD # for psql
+        POSTGRES_HOST: service-db
+    before_script:
+        # setup postgres db
+        - psql -h $POSTGRES_HOST -U $POSTGRES_USER postgres -f ./services/database/init.sql
+        - cp ./common/config/rush/.npmrc.build ./common/config/rush/.npmrc
+    script:
+        - rush install
+        - rush build:ci:build -v
+        - rush build:ci:package-and-push-container-image
+    # Upload artifacts when the build fails so we can inspect the logs
+    artifacts:
+        paths:
+            - '**/*.build.error.log'
+            - '**/*.build.log'
+        expire_in: 1 week
+        when: always

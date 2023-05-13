@@ -1,0 +1,610 @@
+NAME: doctorly-demo
+LAST DEPLOYED: Sat May 13 13:37:27 2023
+NAMESPACE: default
+STATUS: pending-install
+REVISION: 1
+TEST SUITE: None
+HOOKS:
+MANIFEST:
+---
+# Source: wordpress/charts/mariadb/templates/serviceaccount.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: doctorly-demo-mariadb
+  namespace: "default"
+  labels:
+    app.kubernetes.io/name: mariadb
+    helm.sh/chart: mariadb-11.0.2
+    app.kubernetes.io/instance: doctorly-demo
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+automountServiceAccountToken: false
+---
+# Source: wordpress/charts/mariadb/templates/secrets.yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: doctorly-demo-mariadb
+  namespace: "default"
+  labels:
+    app.kubernetes.io/name: mariadb
+    helm.sh/chart: mariadb-11.0.2
+    app.kubernetes.io/instance: doctorly-demo
+    app.kubernetes.io/managed-by: Helm
+type: Opaque
+data:
+  mariadb-root-password: "bXlwYXNzd29yZDAy"
+  mariadb-password: "bXlwYXNzd29yZDAz"
+---
+# Source: wordpress/templates/secrets.yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: doctorly-demo-wordpress
+  namespace: "default"
+  labels:
+    app.kubernetes.io/name: wordpress
+    helm.sh/chart: wordpress-14.0.7
+    app.kubernetes.io/instance: doctorly-demo
+    app.kubernetes.io/managed-by: Helm
+type: Opaque
+data:
+  wordpress-password: "bXlwYXNzd29yZDAx"
+---
+# Source: wordpress/charts/mariadb/templates/primary/configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: doctorly-demo-mariadb
+  namespace: "default"
+  labels:
+    app.kubernetes.io/name: mariadb
+    helm.sh/chart: mariadb-11.0.2
+    app.kubernetes.io/instance: doctorly-demo
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/component: primary
+data:
+  my.cnf: |-
+    [mysqld]
+    skip-name-resolve
+    explicit_defaults_for_timestamp
+    basedir=/opt/bitnami/mariadb
+    plugin_dir=/opt/bitnami/mariadb/plugin
+    port=3306
+    socket=/opt/bitnami/mariadb/tmp/mysql.sock
+    tmpdir=/opt/bitnami/mariadb/tmp
+    max_allowed_packet=16M
+    bind-address=*
+    pid-file=/opt/bitnami/mariadb/tmp/mysqld.pid
+    log-error=/opt/bitnami/mariadb/logs/mysqld.log
+    character-set-server=UTF8
+    collation-server=utf8_general_ci
+    slow_query_log=0
+    slow_query_log_file=/opt/bitnami/mariadb/logs/mysqld.log
+    long_query_time=10.0
+    
+    [client]
+    port=3306
+    socket=/opt/bitnami/mariadb/tmp/mysql.sock
+    default-character-set=UTF8
+    plugin_dir=/opt/bitnami/mariadb/plugin
+    
+    [manager]
+    port=3306
+    socket=/opt/bitnami/mariadb/tmp/mysql.sock
+    pid-file=/opt/bitnami/mariadb/tmp/mysqld.pid
+---
+# Source: wordpress/templates/pvc.yaml
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: doctorly-demo-wordpress
+  namespace: "default"
+  labels:
+    app.kubernetes.io/name: wordpress
+    helm.sh/chart: wordpress-14.0.7
+    app.kubernetes.io/instance: doctorly-demo
+    app.kubernetes.io/managed-by: Helm
+spec:
+  accessModes:
+    - "ReadWriteOnce"
+  resources:
+    requests:
+      storage: "10Gi"
+---
+# Source: wordpress/charts/mariadb/templates/primary/svc.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: doctorly-demo-mariadb
+  namespace: "default"
+  labels:
+    app.kubernetes.io/name: mariadb
+    helm.sh/chart: mariadb-11.0.2
+    app.kubernetes.io/instance: doctorly-demo
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/component: primary
+  annotations:
+spec:
+  type: ClusterIP
+  sessionAffinity: None
+  ports:
+    - name: mysql
+      port: 3306
+      protocol: TCP
+      targetPort: mysql
+      nodePort: null
+  selector: 
+    app.kubernetes.io/name: mariadb
+    app.kubernetes.io/instance: doctorly-demo
+    app.kubernetes.io/component: primary
+---
+# Source: wordpress/templates/metrics-svc.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: doctorly-demo-wordpress-metrics
+  namespace: "default"
+  labels:
+    app.kubernetes.io/name: wordpress
+    helm.sh/chart: wordpress-14.0.7
+    app.kubernetes.io/instance: doctorly-demo
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/component: metrics
+  annotations:
+    prometheus.io/port: '9117'
+    prometheus.io/scrape: "true"
+spec:
+  type: ClusterIP
+  ports:
+    - name: metrics
+      port: 9150
+      protocol: TCP
+      targetPort: metrics
+  selector:
+    app.kubernetes.io/name: wordpress
+    app.kubernetes.io/instance: doctorly-demo
+---
+# Source: wordpress/templates/svc.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: doctorly-demo-wordpress
+  namespace: "default"
+  labels:
+    app.kubernetes.io/name: wordpress
+    helm.sh/chart: wordpress-14.0.7
+    app.kubernetes.io/instance: doctorly-demo
+    app.kubernetes.io/managed-by: Helm
+spec:
+  type: LoadBalancer
+  sessionAffinity: None
+  externalTrafficPolicy: "Cluster"
+  ports:
+    - name: http
+      port: 80
+      protocol: TCP
+      targetPort: http
+    - name: https
+      port: 443
+      protocol: TCP
+      targetPort: https
+  selector:
+    app.kubernetes.io/name: wordpress
+    app.kubernetes.io/instance: doctorly-demo
+---
+# Source: wordpress/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: doctorly-demo-wordpress
+  namespace: "default"
+  labels:
+    app.kubernetes.io/name: wordpress
+    helm.sh/chart: wordpress-14.0.7
+    app.kubernetes.io/instance: doctorly-demo
+    app.kubernetes.io/managed-by: Helm
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: wordpress
+      app.kubernetes.io/instance: doctorly-demo
+  strategy:
+    type: Recreate
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: wordpress
+        helm.sh/chart: wordpress-14.0.7
+        app.kubernetes.io/instance: doctorly-demo
+        app.kubernetes.io/managed-by: Helm
+      annotations:
+    spec:
+      
+      # yamllint disable rule:indentation
+      hostAliases:
+        - hostnames:
+          - status.localhost
+          ip: 127.0.0.1
+      # yamllint enable rule:indentation
+      affinity:
+        podAffinity:
+          
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - podAffinityTerm:
+                labelSelector:
+                  matchLabels:
+                    app.kubernetes.io/name: wordpress
+                    app.kubernetes.io/instance: doctorly-demo
+                namespaces:
+                  - "default"
+                topologyKey: kubernetes.io/hostname
+              weight: 1
+        nodeAffinity:
+          
+      securityContext:
+        fsGroup: 0
+      serviceAccountName: default
+      initContainers:
+        - name: volume-permissions
+          image: "docker.io/bitnami/bitnami-shell:10-debian-10-r418"
+          imagePullPolicy: "IfNotPresent"
+          command:
+            - /bin/bash
+          args:
+            - -ec
+            - |
+              mkdir -p /bitnami/wordpress
+              find /bitnami/wordpress -mindepth 0 -maxdepth 1 -not -name ".snapshot" -not -name "lost+found" | xargs -r chown -R 1:0
+          securityContext:
+            runAsUser: 0
+          resources:
+            limits: {}
+            requests: {}
+          volumeMounts:
+            - mountPath: /bitnami/wordpress
+              name: wordpress-data
+              subPath: wordpress
+      containers:
+        - name: wordpress
+          image: docker.io/bitnami/wordpress:5.9.3-debian-10-r35
+          imagePullPolicy: "IfNotPresent"
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1
+          env:
+            - name: BITNAMI_DEBUG
+              value: "false"
+            - name: ALLOW_EMPTY_PASSWORD
+              value: "yes"
+            - name: MARIADB_HOST
+              value: "doctorly-demo-mariadb"
+            - name: MARIADB_PORT_NUMBER
+              value: "3306"
+            - name: WORDPRESS_DATABASE_NAME
+              value: "bitnami_wordpress"
+            - name: WORDPRESS_DATABASE_USER
+              value: "bn_wordpress"
+            - name: WORDPRESS_DATABASE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: doctorly-demo-mariadb
+                  key: mariadb-password
+            - name: WORDPRESS_USERNAME
+              value: "fdt"
+            - name: WORDPRESS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: doctorly-demo-wordpress
+                  key: wordpress-password
+            - name: WORDPRESS_EMAIL
+              value: "frikdt@gmail.com"
+            - name: WORDPRESS_FIRST_NAME
+              value: "Sys"
+            - name: WORDPRESS_LAST_NAME
+              value: "Admin"
+            - name: WORDPRESS_HTACCESS_OVERRIDE_NONE
+              value: "no"
+            - name: WORDPRESS_ENABLE_HTACCESS_PERSISTENCE
+              value: "yes"
+            - name: WORDPRESS_BLOG_NAME
+              value: "Doctorly Demo"
+            - name: WORDPRESS_SKIP_BOOTSTRAP
+              value: "no"
+            - name: WORDPRESS_TABLE_PREFIX
+              value: "wp_"
+            - name: WORDPRESS_SCHEME
+              value: "https"
+            - name: WORDPRESS_EXTRA_WP_CONFIG_CONTENT
+              value: ""
+            - name: WORDPRESS_PLUGINS
+              value: "none"
+            - name: APACHE_HTTP_PORT_NUMBER
+              value: "8080"
+            - name: APACHE_HTTPS_PORT_NUMBER
+              value: "8443"
+          envFrom:
+          ports:
+            - name: http
+              containerPort: 8080
+            - name: https
+              containerPort: 8443
+          livenessProbe:
+            failureThreshold: 6
+            httpGet:
+              httpHeaders: []
+              path: /wp-admin/install.php
+              port: 'https'
+              scheme: 'HTTPS'
+            initialDelaySeconds: 120
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 5
+          readinessProbe:
+            failureThreshold: 6
+            httpGet:
+              httpHeaders: []
+              path: /wp-login.php
+              port: 'https'
+              scheme: 'HTTPS'
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 5
+          resources:
+            limits: {}
+            requests:
+              cpu: 300m
+              memory: 512Mi
+          volumeMounts:
+            - mountPath: /bitnami/wordpress
+              name: wordpress-data
+              subPath: wordpress
+        - name: metrics
+          image: docker.io/bitnami/apache-exporter:0.11.0-debian-10-r137
+          imagePullPolicy: "IfNotPresent"
+          command:
+            - /bin/apache_exporter
+            - --scrape_uri
+            - http://status.localhost:8080/server-status/?auto
+          ports:
+            - name: metrics
+              containerPort: 9117
+          livenessProbe:
+            failureThreshold: 3
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 5
+            httpGet:
+              path: /metrics
+              port: metrics
+          readinessProbe:
+            failureThreshold: 3
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 3
+            httpGet:
+              path: /metrics
+              port: metrics
+          resources:
+            limits: {}
+            requests: {}
+      volumes:
+        - name: wordpress-data
+          persistentVolumeClaim:
+            claimName: doctorly-demo-wordpress
+---
+# Source: wordpress/charts/mariadb/templates/primary/statefulset.yaml
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: doctorly-demo-mariadb
+  namespace: default
+  labels:
+    app.kubernetes.io/name: mariadb
+    helm.sh/chart: mariadb-11.0.2
+    app.kubernetes.io/instance: doctorly-demo
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/component: primary
+spec:
+  replicas: 1
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels: 
+      app.kubernetes.io/name: mariadb
+      app.kubernetes.io/instance: doctorly-demo
+      app.kubernetes.io/component: primary
+  serviceName: doctorly-demo-mariadb
+  updateStrategy:
+    type: RollingUpdate
+  template:
+    metadata:
+      annotations:
+        checksum/configuration: 16a449a48464bbf13302a13959a967c55e35bb073652d27bf28b4139d6ad51e5
+      labels:
+        app.kubernetes.io/name: mariadb
+        helm.sh/chart: mariadb-11.0.2
+        app.kubernetes.io/instance: doctorly-demo
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/component: primary
+    spec:
+      
+      serviceAccountName: doctorly-demo-mariadb
+      affinity:
+        podAffinity:
+          
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - podAffinityTerm:
+                labelSelector:
+                  matchLabels:
+                    app.kubernetes.io/name: mariadb
+                    app.kubernetes.io/instance: doctorly-demo
+                    app.kubernetes.io/component: primary
+                namespaces:
+                  - "default"
+                topologyKey: kubernetes.io/hostname
+              weight: 1
+        nodeAffinity:
+          
+      securityContext:
+        fsGroup: 1001
+      containers:
+        - name: mariadb
+          image: docker.io/bitnami/mariadb:10.6.7-debian-10-r70
+          imagePullPolicy: "IfNotPresent"
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1001
+          env:
+            - name: BITNAMI_DEBUG
+              value: "false"
+            - name: MARIADB_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: doctorly-demo-mariadb
+                  key: mariadb-root-password
+            - name: MARIADB_USER
+              value: "bn_wordpress"
+            - name: MARIADB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: doctorly-demo-mariadb
+                  key: mariadb-password
+            - name: MARIADB_DATABASE
+              value: "bitnami_wordpress"
+          ports:
+            - name: mysql
+              containerPort: 3306
+          livenessProbe:
+            failureThreshold: 3
+            initialDelaySeconds: 120
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 1
+            exec:
+              command:
+                - /bin/bash
+                - -ec
+                - |
+                  password_aux="${MARIADB_ROOT_PASSWORD:-}"
+                  if [[ -f "${MARIADB_ROOT_PASSWORD_FILE:-}" ]]; then
+                      password_aux=$(cat "$MARIADB_ROOT_PASSWORD_FILE")
+                  fi
+                  mysqladmin status -uroot -p"${password_aux}"
+          readinessProbe:
+            failureThreshold: 3
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 1
+            exec:
+              command:
+                - /bin/bash
+                - -ec
+                - |
+                  password_aux="${MARIADB_ROOT_PASSWORD:-}"
+                  if [[ -f "${MARIADB_ROOT_PASSWORD_FILE:-}" ]]; then
+                      password_aux=$(cat "$MARIADB_ROOT_PASSWORD_FILE")
+                  fi
+                  mysqladmin status -uroot -p"${password_aux}"
+          resources: 
+            limits: {}
+            requests: {}
+          volumeMounts:
+            - name: data
+              mountPath: /bitnami/mariadb
+            - name: config
+              mountPath: /opt/bitnami/mariadb/conf/my.cnf
+              subPath: my.cnf
+      volumes:
+        - name: config
+          configMap:
+            name: doctorly-demo-mariadb
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+        labels: 
+          app.kubernetes.io/name: mariadb
+          app.kubernetes.io/instance: doctorly-demo
+          app.kubernetes.io/component: primary
+      spec:
+        accessModes:
+          - "ReadWriteOnce"
+        resources:
+          requests:
+            storage: "8Gi"
+---
+# Source: wordpress/templates/ingress.yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: doctorly-demo-wordpress
+  namespace: "default"
+  labels:
+    app.kubernetes.io/name: wordpress
+    helm.sh/chart: wordpress-14.0.7
+    app.kubernetes.io/instance: doctorly-demo
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    cert-manager.io/issuer: letsencrypt-cert-qa2
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/server-snippet: add_header X-Robots-Tag "noindex, nofollow";
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+spec:
+  ingressClassName: "nginx-public"
+  rules:
+    - host: "doctorlydemo.fdt.cloud"
+      http:
+        paths:
+          - path: /
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: doctorly-demo-wordpress
+                port:
+                  name: http
+  tls:
+    - hosts:
+        - "doctorlydemo.fdt.cloud"
+      secretName: doctorlydemo.fdt.cloud-tls
+
+NOTES:
+CHART NAME: wordpress
+CHART VERSION: 14.0.7
+APP VERSION: 5.9.3
+
+** Please be patient while the chart is being deployed **
+
+Your WordPress site can be accessed through the following DNS name from within your cluster:
+
+    doctorly-demo-wordpress.default.svc.cluster.local (port 80)
+
+To access your WordPress site from outside the cluster follow the steps below:
+
+1. Get the WordPress URL and associate WordPress hostname to your cluster external IP:
+
+   export CLUSTER_IP=$(minikube ip) # On Minikube. Use: `kubectl cluster-info` on others K8s clusters
+   echo "WordPress URL: https://doctorlydemo.fdt.cloud/"
+   echo "$CLUSTER_IP  doctorlydemo.fdt.cloud" | sudo tee -a /etc/hosts
+
+2. Open a browser and access WordPress using the obtained URL.
+
+3. Login with the following credentials below to see your blog:
+
+  echo Username: fdt
+  echo Password: $(kubectl get secret --namespace default doctorly-demo-wordpress -o jsonpath="{.data.wordpress-password}" | base64 --decode)
+
+You can access Apache Prometheus metrics following the steps below:
+
+1. Get the Apache Prometheus metrics URL by running:
+
+    kubectl port-forward --namespace default svc/doctorly-demo-wordpress-metrics 9150:9150 &
+    echo "Apache Prometheus metrics URL: http://127.0.0.1:9150/metrics"
+
+2. Open a browser and access Apache Prometheus metrics using the obtained URL.

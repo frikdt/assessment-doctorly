@@ -1,0 +1,12 @@
+\contentsline {section}{\numberline {1}Task \#3: Monitoring Production Servers}{2}{section.1}%
+\contentsline {subsection}{\numberline {1.1}Introduction}{2}{subsection.1.1}%
+\contentsline {subsection}{\numberline {1.2}Monitoring Tools \& Technologies}{2}{subsection.1.2}%
+\contentsline {subsection}{\numberline {1.3}Implementation}{2}{subsection.1.3}%
+\contentsline {subsection}{\numberline {1.4}Alerts}{2}{subsection.1.4}%
+\contentsline {section}{\numberline {2}Task \#4: A Basic CI/CD Pipeline}{3}{section.2}%
+\contentsline {subsection}{\numberline {2.1}Introduction}{3}{subsection.2.1}%
+\contentsline {subsection}{\numberline {2.2}Approach \& Assumptions}{3}{subsection.2.2}%
+\contentsline {subsection}{\numberline {2.3}Reference Material}{3}{subsection.2.3}%
+\contentsline {section}{\numberline {3}Task \#5: Helm Chart for a WordPress Application}{4}{section.3}%
+\contentsline {subsection}{\numberline {3.1}Introduction}{4}{subsection.3.1}%
+\contentsline {subsection}{\numberline {3.2}Description}{4}{subsection.3.2}%
